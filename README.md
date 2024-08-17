@@ -103,9 +103,9 @@ Chatbot Interfaceは、高度な自然言語処理技術を活用した対話型
 
    streamlit:
      title: 'AI Chatbot'
-     input_placeholder: 'Ask me anything...'
+     input_placeholder: 'メッセージを入力してください'
 
-   system_prompt: 'You are a helpful assistant. Answer the question based on the given information.'
+   system_prompt: '以下の情報のみを使用して回答してください。'
    ```
 
 ## 使用方法
