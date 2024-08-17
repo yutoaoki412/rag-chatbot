@@ -1,3 +1,5 @@
+# 現状はドキュメントを追加するたびに再実行のフローの想定のため、Google Colab上で実行することを想定
+
 import os
 import json
 from google.colab import auth, userdata, drive # type: ignore
