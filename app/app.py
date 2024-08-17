@@ -1,10 +1,16 @@
 import streamlit as st
+import yaml
 from utils import load_vectors_from_gcs, vectorize_text, find_most_similar, ask_question
 
-def main():
-    st.title("Chatbot Interface")
 
-    # GCSからドキュメントベクトルをロード
+# 設定ファイルを読み込む
+with open('config.yml', 'r') as file:
+    config = yaml.safe_load(file)
+
+def main():
+    st.title(config['streamlit']['title'])
+
+    # GCSからドキュメントをベクトル化したものをロード
     document_vectors = load_vectors_from_gcs()
     
     # チャット履歴をセッション状態で保持
@@ -17,7 +23,7 @@ def main():
             st.markdown(message["content"])
 
     # ユーザーの入力を受け取る
-    if user_input := st.chat_input("メッセージを入力してください:"):
+    if user_input := st.chat_input(config['streamlit']['input_placeholder']):
         st.session_state.messages.append({"role": "user", "content": user_input})
         
         # 質問をベクトル化
@@ -31,7 +37,7 @@ def main():
         answer = ask_question(user_input, context)
         
         st.session_state.messages.append({"role": "assistant", "content": answer})
-        st.experimental_rerun()
+        st.rerun()
 
 if __name__ == "__main__":
     main()

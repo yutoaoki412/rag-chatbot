@@ -8,19 +8,19 @@ from openai import OpenAI
 import io
 
 
-# Google認証を行う（スコープを指定）
+# Google認証を行う
 auth.authenticate_user()
 
 # 環境変数の設定
 os.environ["OPENAI_API_KEY"] = userdata.get('OPENAI_API_KEY')
 
-# Colabのシークレット機能を使用してフォルダID
+# ColabのシークレットからフォルダIDを取得
 FOLDER_ID = userdata.get('FOLDER_ID')
 GCS_BUCKET_NAME = 'chatbot-input-documents'
 
 # クライアントの初期化
 drive_service = build('drive', 'v3', cache_discovery=False)
-openai_client = OpenAI()  # API keyは環境変数から自動的に読み込まれます
+openai_client = OpenAI()
 storage_client = storage.Client()
 
 

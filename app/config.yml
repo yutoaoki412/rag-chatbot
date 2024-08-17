@@ -1,0 +1,17 @@
+# GCS設定
+gcs:
+  bucket_name: 'chatbot-input-documents'
+  document_vectors_file: 'document_vectors.json'
+
+# OpenAI設定
+openai:
+  embedding_model: 'text-embedding-3-small'
+  chat_model: 'gpt-4o-mini'
+
+# Streamlit設定
+streamlit:
+  title: 'Chatbot Interface'
+  input_placeholder: 'メッセージを入力してください'
+
+# システムプロンプト
+system_prompt: '以下の情報のみを使用して回答してください。'
