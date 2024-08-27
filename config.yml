@@ -5,13 +5,24 @@ gcs:
 
 # OpenAI設定
 openai:
-  embedding_model: 'text-embedding-3-small'
+  api_key: 'your-openai-api-key'
+  embedding_model: 'text-embedding-3-large'
   chat_model: 'gpt-4o-mini'
 
-# Streamlit設定
-streamlit:
-  title: 'Chatbot Interface'
-  input_placeholder: 'メッセージを入力してください'
+# Slack設定
+slack:
+  bot_token: 'your-slack-bot-token'
+  app_token: 'your-slack-app-token'
+  signing_secret: 'your-slack-signing-secret'
+  allowed_channels: ['CHANNEL_ID_1', 'CHANNEL_ID_2', 'CHANNEL_ID_3']
+
+# Google設定
+google:
+  service_account_file: '/Users/aokiyuto/Documents/secret.json'
+
+# Google Drive設定
+google_drive:
+  folder_id: 'your-folder-id'
 
 # システムプロンプト
 system_prompt: '以下の情報のみを使用して回答してください。'
