@@ -5,16 +5,17 @@ gcs:
 
 # OpenAI設定
 openai:
-  api_key: 'your-openai-api-key'
+  api_key: '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'
   embedding_model: 'text-embedding-3-large'
   chat_model: 'gpt-4o-mini'
 
 # Slack設定
 slack:
-  bot_token: 'your-slack-bot-token'
-  app_token: 'your-slack-app-token'
-  signing_secret: 'your-slack-signing-secret'
-  allowed_channels: ['CHANNEL_ID_1', 'CHANNEL_ID_2', 'CHANNEL_ID_3']
+  bot_token: 'xoxb-6699105764421-7658951171826-uglcuoQG3YEOSpWIeJokGKx0'
+  app_token: 'A07KCQRLD6F'
+  signing_secret: 'aaf3cb67669a9168b7ef6a109f54eb98'
+  client_secret: '54b3283bfc3773061f06b6ff3e7a5bc8'
+  allowed_channels: ['C07C7F67B45']
 
 # Google設定
 google:
@@ -22,7 +23,4 @@ google:
 
 # Google Drive設定
 google_drive:
-  folder_id: 'your-folder-id'
-
-# システムプロンプト
-system_prompt: '以下の情報のみを使用して回答してください。'
+  folder_id: '1-84UXPCVDXj-ca0xLR0bKrzB-6Oqe65m'

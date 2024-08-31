@@ -1,96 +1,68 @@
-import os
-import json
-import yaml
-from google.oauth2 import service_account
-from google.cloud import storage
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
 from openai import OpenAI
-import io
+import yaml
+from googleapiclient.discovery import build
+from google.oauth2.service_account import Credentials
+from google.cloud import storage
+import json
+import time
 
-# 設定ファイルを読み込む
+def log_message(message):
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}")
+
+# config.ymlファイルを読み込む
 with open('config.yml', 'r') as file:
     config = yaml.safe_load(file)
 
-def setup_clients():
-    # サービスアカウントの認証情報を読み込む
-    credentials = service_account.Credentials.from_service_account_file(
-        config['google']['service_account_file'],
-        scopes=['https://www.googleapis.com/auth/drive.readonly']
-    )
+log_message("設定ファイルを読み込みました。")
 
-    # OpenAI API Keyを環境変数から設定
-    os.environ["OPENAI_API_KEY"] = config['openai']['api_key']
+# Google Cloud Storageクライアントの作成
+credentials = Credentials.from_service_account_file(config['google']['service_account_file'])
+storage_client = storage.Client(credentials=credentials)
+openai_client = OpenAI(api_key=config['openai']['api_key'])
+bucket = storage_client.bucket(config['gcs']['bucket_name'])
 
-    # クライアントの初期化
-    drive_service = build('drive', 'v3', credentials=credentials, cache_discovery=False)
-    openai_client = OpenAI()
-    storage_client = storage.Client.from_service_account_json(config['google']['service_account_file'])
+log_message("Google Drive APIとGoogle Cloud Storageの認証が完了しました。")
+
+# Google Drive APIクライアントの作成
+drive_service = build('drive', 'v3', credentials=credentials)
+
+# フォルダ内のすべてのGoogleドキュメントを取得
+log_message(f"フォルダID: {config['google_drive']['folder_id']} からドキュメントを取得中...")
+results = drive_service.files().list(q=f"'{config['google_drive']['folder_id']}' in parents and mimeType='application/vnd.google-apps.document'",
+                                    fields="files(id, name)").execute()
+documents = results.get('files', [])
+log_message(f"{len(documents)}件のドキュメントが見つかりました。")
+
+# 各Googleドキュメントをベクトル化し、GCSに保存
+vector_data = {}
+for index, document in enumerate(documents, 1):
+    doc_id = document['id']
+    doc_name = document['name']
     
-    print("クライアント初期化完了。")
-    return drive_service, openai_client, storage_client
-
-def download_document(drive_service, file_id):
-    request = drive_service.files().export_media(fileId=file_id, mimeType='text/plain')
-    fh = io.BytesIO()
-    downloader = MediaIoBaseDownload(fh, request)
-    done = False
-    while not done:
-        _, done = downloader.next_chunk()
-    return fh.getvalue().decode('utf-8')
-
-def list_documents_in_folder(drive_service, folder_id):
-    query = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.document'"
-    results = drive_service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
-    return results.get('files', [])
-
-def vectorize_text(openai_client, text):
-    response = openai_client.embeddings.create(
-        input=text, 
-        model=config['openai']['embedding_model']
-    )
-    return response.data[0].embedding
-
-def save_to_gcs(storage_client, data, filename):
-    bucket = storage_client.bucket(config['gcs']['bucket_name'])
-    blob = bucket.blob(filename)
-    blob.upload_from_string(json.dumps(data))
-    print(f"{filename} をGCSバケット {config['gcs']['bucket_name']} に保存しました")
-
-def process_documents():
-    drive_service, openai_client, storage_client = setup_clients()
-
-    folder_id = config['google_drive']['folder_id']
-    print(f"FOLDER_ID: {folder_id}")
-    print(f"GCS_BUCKET_NAME: {config['gcs']['bucket_name']}")
-
-    documents = list_documents_in_folder(drive_service, folder_id)
-    print(f"フォルダ内のドキュメント数: {len(documents)}")
-    for doc in documents:
-        print(f"ドキュメントID: {doc['id']}, 名前: {doc['name']}")
-
-    document_vectors = {}
-
-    for document in documents:
-        doc_id, doc_name = document['id'], document['name']
-        print(f"ドキュメント処理中: {doc_name}")
+    log_message(f"処理中 ({index}/{len(documents)}): {doc_name} (ID: {doc_id})")
+    
+    try:
+        # Googleドキュメントのコンテンツを取得
+        doc_content = drive_service.files().export(fileId=doc_id, mimeType='text/plain').execute()
+        text = doc_content.decode('utf-8')
+        log_message(f"  ドキュメントのコンテンツを取得しました。文字数: {len(text)}")
         
-        doc_content = download_document(drive_service, doc_id)
-        print(f"内容の長さ: {len(doc_content)} 文字")
+        # OpenAI APIを使用してテキストをベクトル化
+        response = openai_client.embeddings.create(input=text, model=config['openai']['embedding_model'])
+        embeddings = response.data[0].embedding
+        log_message(f"  ベクトル化が完了しました。ベクトルの次元数: {len(embeddings)}")
         
-        vector = vectorize_text(openai_client, doc_content)
-        document_vectors[doc_name] = vector
-        print(f"ベクトルの長さ: {len(vector)}")
-        print("---")
+        # ベクトルデータを格納
+        vector_data[doc_name] = embeddings
+    except Exception as e:
+        log_message(f"  エラーが発生しました: {str(e)}")
+        continue
 
-    print(f"処理したドキュメントの総数: {len(document_vectors)}")
+log_message("すべてのドキュメントの処理が完了しました。")
 
-    # ドキュメントベクトルをGCSに保存
-    save_to_gcs(storage_client, document_vectors, config['gcs']['document_vectors_file'])
+# ベクトルデータをGCSに保存
+log_message(f"ベクトルデータをGCSに保存中... (バケット: {config['gcs']['bucket_name']}, ファイル: {config['gcs']['document_vectors_file']})")
+blob = bucket.blob(config['gcs']['document_vectors_file'])
+blob.upload_from_string(data=json.dumps(vector_data), content_type='application/json')
 
-    # 例：各ベクトルの最初の10要素を表示
-    for doc_name, vector in document_vectors.items():
-        print(f"ドキュメント: {doc_name}, ベクトル: {vector[:10]}...")
-
-if __name__ == "__main__":
-    process_documents()
+log_message(f"処理が完了しました。{len(vector_data)}件のドキュメントがベクトル化され、GCSに保存されました。")

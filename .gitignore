@@ -1,8 +1,5 @@
 # .DS_Storeファイルを無視する
 .DS_Store
 
-# 環境変数ファイル
-.env
-
 # サービスアカウントのJSONファイル
-/Users/aokiyuto/Documents/secret.json
+config.yml

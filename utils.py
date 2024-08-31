@@ -1,24 +1,15 @@
-import os
-from dotenv import load_dotenv
 import yaml
 from google.cloud import storage
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
 
-# .envファイルを読み込む
-load_dotenv()
-
 # 設定ファイルを読み込む
 with open('config.yml', 'r') as file:
     config = yaml.safe_load(file)
 
-# 環境変数を取得
-GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
 # クライアントの初期化
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
-storage_client = storage.Client(GOOGLE_APPLICATION_CREDENTIALS)
+openai_client = OpenAI(api_key=config['openai']['api_key'])
+storage_client = storage.Client(config['google']['service_account_file'])
 
 def load_vectors_from_gcs():
     """GCSからドキュメントベクトルをロードする"""
@@ -46,7 +37,7 @@ def find_most_similar(question_vector, vectors):
 def ask_question(question, context):
     """質問に対する回答を生成する"""
     messages = [
-        {"role": "system", "content": config['system_prompt']},
+        {"role": "system", "content": "以下の情報のみを使用して回答してください。"},
         {"role": "user", "content": f"質問: {question}\n\n情報: {context}"}
     ]
     

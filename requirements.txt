@@ -1,0 +1,7 @@
+pyyaml
+fastapi
+slack-bolt
+google-cloud-storage
+openai
+scikit-learn
+mangum==0.17.0
