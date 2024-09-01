@@ -1,48 +1,62 @@
 import yaml
-from google.cloud import storage
+from googleapiclient.discovery import build
+from google.oauth2.service_account import Credentials
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
 
-# 設定ファイルを読み込む
 with open('config.yml', 'r') as file:
     config = yaml.safe_load(file)
 
-# クライアントの初期化
-openai_client = OpenAI(api_key=config['openai']['api_key'])
-storage_client = storage.Client(config['google']['service_account_file'])
+client = OpenAI(api_key=config['openai']['api_key'])
 
-def load_vectors_from_gcs():
-    """GCSからドキュメントベクトルをロードする"""
-    bucket = storage_client.bucket(config['gcs']['bucket_name'])
-    blob = bucket.blob(config['gcs']['document_vectors_file'])
-    data = yaml.safe_load(blob.download_as_string())
-    return data
+def get_docs_list(folder_id):
+    credentials = Credentials.from_service_account_file(config['google']['service_account_file'])
+    drive_service = build('drive', 'v3', credentials=credentials)
+
+    files = drive_service.files().list(
+        q=f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.document'",
+        fields="files(id, name)"
+    ).execute().get('files', [])
+
+    docs_list = []
+    for file in files:
+        doc_id = file['id']
+        doc_content = drive_service.files().export(fileId=doc_id, mimeType='text/plain').execute()
+        docs_list.append({
+            'name': file['name'],
+            'url': f"https://docs.google.com/document/d/{doc_id}/edit",
+            'content': doc_content.decode('utf-8')
+        })
+
+    return docs_list
 
 def vectorize_text(text):
-    """テキストをベクトル化する"""
-    response = openai_client.embeddings.create(
-        input=text, 
-        model=config['openai']['embedding_model']
+    response = client.embeddings.create(
+        input=text,
+        model="text-embedding-3-large"
     )
     return response.data[0].embedding
 
-def find_most_similar(question_vector, vectors):
-    """最も類似度の高いドキュメントを見つける"""
-    similarities = {
-        doc_name: cosine_similarity([question_vector], [vector])[0][0]
-        for doc_name, vector in vectors.items()
-    }
-    return max(similarities, key=similarities.get)
+def find_most_similar(question_vector, vectors, documents):
+    similarities = []
+
+    for index, vector in enumerate(vectors):
+        similarity = cosine_similarity([question_vector], [vector])[0][0]
+        similarities.append([similarity, index])
+
+    similarities.sort(reverse=True, key=lambda x: x[0])
+    top_documents = [documents[index] for similarity, index in similarities[:2]]
+
+    return top_documents
 
 def ask_question(question, context):
-    """質問に対する回答を生成する"""
     messages = [
         {"role": "system", "content": "以下の情報のみを使用して回答してください。"},
         {"role": "user", "content": f"質問: {question}\n\n情報: {context}"}
     ]
     
-    response = openai_client.chat.completions.create(
-        model=config['openai']['chat_model'],
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
         messages=messages
     )
 

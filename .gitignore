@@ -1,5 +1,0 @@
-# .DS_Storeファイルを無視する
-.DS_Store
-
-# サービスアカウントのJSONファイル
-config.yml
