@@ -4,12 +4,14 @@ from google.oauth2.service_account import Credentials
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
 
+
 with open('config.yml', 'r') as file:
     config = yaml.safe_load(file)
 
 client = OpenAI(api_key=config['openai']['api_key'])
 credentials = Credentials.from_service_account_file(config['google']['service_account_file'])
 google_client = build('drive', 'v3', credentials=credentials)
+
 
 def get_docs_list(folder_id):
     files = google_client.files().list(
@@ -29,12 +31,14 @@ def get_docs_list(folder_id):
 
     return docs_list
 
+
 def vectorize_text(text):
     response = client.embeddings.create(
         input=text,
         model=config['openai']['embedding_model']
     )
     return response.data[0].embedding
+
 
 def find_most_similar(question_vector, vectors, documents):
     similarities = []
@@ -47,6 +51,7 @@ def find_most_similar(question_vector, vectors, documents):
     top_documents = [documents[index] for similarity, index in similarities[:2]]
 
     return top_documents
+
 
 def ask_question(question, context):
     messages = [

@@ -1,21 +1,8 @@
-# GCS設定
-gcs:
-  bucket_name: 'chatbot-input-documents'
-  document_vectors_file: 'document_vectors.json'
-
 # OpenAI設定
 openai:
   api_key: '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'
   embedding_model: 'text-embedding-3-large'
   chat_model: 'gpt-4o-mini'
-
-# Slack設定
-slack:
-  bot_token: 'xoxb-6699105764421-7658951171826-uglcuoQG3YEOSpWIeJokGKx0'
-  app_token: 'A07KCQRLD6F'
-  signing_secret: 'aaf3cb67669a9168b7ef6a109f54eb98'
-  client_secret: '54b3283bfc3773061f06b6ff3e7a5bc8'
-  allowed_channels: ['C07C7F67B45']
 
 # Google設定
 google:

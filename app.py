@@ -6,6 +6,7 @@ from utils import vectorize_text, find_most_similar, ask_question, get_docs_list
 with open('config.yml', 'r') as file:
     config = yaml.safe_load(file)
 
+
 def main():
     st.title('Document Search Chatbot')
 
@@ -38,6 +39,7 @@ def main():
         
         st.session_state.messages.append({"role": "assistant", "content": response})
         st.rerun()
+
 
 if __name__ == "__main__":
     main()
